@@ -1,0 +1,16 @@
+# 放进 clangd / VS Code 就能自动格式化；没有 clang-format 也不影响编译
+BasedOnStyle: Google
+Language: Cpp
+Standard: c++17
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ColumnLimit: 100
+PointerAlignment: Left
+AccessModifierOffset: -4
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: Never
+BreakBeforeBraces: Attach
+IncludeBlocks: Regroup
+SortIncludes: CaseSensitive
+SpacesBeforeTrailingComments: 2

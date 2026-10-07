@@ -1,0 +1,34 @@
+# ---- build outputs ----
+/build/
+/out/
+/install/
+CMakeUserPresets.json
+CMakeCache.txt
+CMakeFiles/
+
+# ---- MinGW / MSVC objects & binaries ----
+*.o
+*.obj
+*.a
+*.lib
+*.dll
+*.exe
+*.pdb
+*.ilk
+*.idb
+
+# ---- editor / IDE ----
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+compile_commands.json
+
+# ---- OS junk ----
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# ---- kept on purpose ----
+!external/glad/CMakeLists.txt
