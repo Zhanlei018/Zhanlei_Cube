@@ -95,12 +95,17 @@ set(CUBE_TEST_SOURCES
     tests/test_main.cpp
     tests/test_cube.cpp)
 
+# 工具程序：有自己独立的 main()，单独编成 exe，不进 cube_core
+set(CUBE_TOOL_SOURCES
+    tools/math_check.cpp)
+
 # ---------------------------------------------------------------------------
 #  进度守卫
 # ---------------------------------------------------------------------------
 set(CUBE_WRITTEN "")
 set(CUBE_PENDING "")
-foreach(relpath IN LISTS CUBE_CORE_SOURCES CUBE_GFX_SOURCES CUBE_APP_SOURCES CUBE_TEST_SOURCES)
+foreach(relpath IN LISTS CUBE_CORE_SOURCES CUBE_GFX_SOURCES CUBE_APP_SOURCES
+                          CUBE_TEST_SOURCES CUBE_TOOL_SOURCES)
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${relpath}")
         list(APPEND CUBE_WRITTEN "${relpath}")
     else()
@@ -124,6 +129,14 @@ message(STATUS "")
 # ---------------------------------------------------------------------------
 set(_core_existing "")
 foreach(src IN LISTS CUBE_CORE_SOURCES)
+    # 在你写作业期间，math.cpp 本身是个带 main() 的自测程序，
+    # 直接并进 cube_core 会变成"两个 main"，链接必炸。
+    # 所以这里跳过它，让 math_check 目标单独编译它。
+    # >>> 等你把 main() 从 math.cpp 删掉，把下面这两行也删掉 <<<
+    if(src STREQUAL "src/math/math.cpp")
+        continue()
+    endif()
+
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${src}")
         list(APPEND _core_existing "${src}")
     endif()
@@ -134,6 +147,32 @@ if(_core_existing)
     target_include_directories(cube_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 else()
     message(STATUS "  cube_core 还是空的 —— 先写 src/math/ 和 src/cube/ 吧。")
+endif()
+
+# ---------------------------------------------------------------------------
+#  math_check —— 数学层验证台（阶段 1 的作业用这个跑）
+#
+#  两个要点：
+#    1. 每新增一个工具程序，要在这里 add_executable 一次 ——
+#       VS Code 的 CMake 扩展就是靠这个认出"哪个目标拥有这个 cpp"的。
+#       没登记的文件，它会报"未找到目标"（不是生成失败）。
+#    2. 逻辑写在 src/ 里（将来并入 cube_core），验证用的 main() 写在 tools/ 里。
+#       一个可执行文件只能有一个 main()，物理分开就永不冲突。
+#
+#  注意：上面 cube_core 那里跳过了 math.cpp，正是为了让这个目标独占它。
+#        文件只能被"排除出某个目标"，不能全局排除 ——
+#        曾经误用 HEADER_FILE_ONLY，结果两边都不编译它，报 undefined reference。
+# ---------------------------------------------------------------------------
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/math/math.cpp"
+   AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tools/math_check.cpp")
+
+    add_executable(math_check
+        tools/math_check.cpp
+        src/math/math.cpp
+        src/math/math.hpp)
+
+    target_link_libraries(math_check PRIVATE glm::glm)
+    target_include_directories(math_check PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 endif()
 
 # ---------------------------------------------------------------------------

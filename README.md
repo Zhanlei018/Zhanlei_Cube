@@ -63,6 +63,9 @@ D:\Cube
 │
 ├── shaders/                .vert / .frag（建议加 R 键热重载）
 │
+├── tools/                  有独立 main() 的验证程序
+│   └── math_check.cpp      阶段 1 用：验旋转矩阵对不对
+│
 ├── src/
 │   ├── math/        薄封装：整数旋转矩阵、格坐标 ↔ 层号
 │   ├── cube/        ★ 逻辑模型：Cubie / State / Move / applyMove
@@ -74,6 +77,13 @@ D:\Cube
 │
 └── tests/           纯逻辑单元测试（不链接任何图形库）
 ```
+
+**为什么 `tools/` 要跟 `src/` 分开？** 因为一个可执行文件里只能有一个 `main()`。
+`src/` 里的代码是要并进 `cube_core` 库的，它们不能带 `main()`；
+验证程序的 `main()` 就放在 `tools/`，通过 CMake 各自编成独立的 exe。
+
+新增一个验证程序 = 在 `tools/` 建文件 + 在 `CMakeLists.txt` 里 `add_executable` 注册一次。
+**不注册的话，VS Code 的 CMake 扩展就会对那个文件报"未找到目标"**（是提示，不是错误）。
 
 每个模块目录里都有一个 `README.md`，写清了**该写什么、接口长什么样、常见坑在哪**。
 
