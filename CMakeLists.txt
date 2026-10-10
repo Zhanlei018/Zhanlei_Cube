@@ -201,6 +201,12 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tools/state_check.cpp")
     target_link_libraries(state_check PRIVATE cube_core glm::glm)
 endif()
 
+# probe2 —— 临时探针（排查完就删）
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tools/probe2.cpp")
+    add_executable(probe2 tools/probe2.cpp)
+    target_link_libraries(probe2 PRIVATE cube_core glm::glm)
+endif()
+
 # ---------------------------------------------------------------------------
 #  cube_gfx —— 渲染 / 拾取 / 交互 / 动画
 # ---------------------------------------------------------------------------

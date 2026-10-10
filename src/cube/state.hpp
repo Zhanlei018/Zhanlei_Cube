@@ -54,7 +54,7 @@ State makeSolvedState();
 bool isSolved(const State& state);
 std::array<Color, 9> faceColors(const State& state, char face);
 void printState(const State& state);
-Color colorOfSticker(const glm::ivec3& column);
+Color colorOfSticker(int columnIndex, bool reversed);
 bool checkInvariants(const State& state);
 bool operator==(const State& a, const State& b);
 inline bool operator!=(const State& a, const State& b) {

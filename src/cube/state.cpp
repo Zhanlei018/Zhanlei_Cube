@@ -24,20 +24,13 @@ State makeSolvedState() {
     return state_cubie;
 }
 
-Color colorOfSticker(const glm::ivec3& column) {
-    if (column.x == 1)
-        return Color::kRed;
-    if (column.x == -1)
-        return Color::kOrange;
-    if (column.y == 1)
-        return Color::kWhite;
-    if (column.y == -1)
-        return Color::kYellow;
-    if (column.z == 1)
-        return Color::kGreen;
-    if (column.z == -1)
-        return Color::kBlue;
-    return Color::kUnknown;
+Color colorOfSticker(int columnIndex, bool reversed) {
+    switch (columnIndex) {
+        case 0: return reversed ? Color::kOrange : Color::kRed;
+        case 1: return reversed ? Color::kYellow : Color::kWhite;
+        case 2: return reversed ? Color::kBlue   : Color::kGreen;
+        default: return Color::kUnknown;
+    }
 }
 
 bool isSolved(const State& state) {
@@ -110,13 +103,13 @@ std::array<Color, 9> faceColors(const State& state, char face) {
         }
         int index = row * 3 + col;  // 用index整理方块的视觉3*3顺序，输入数组
         for (int j = 0; j < 3; j++) {
-            const glm::ivec3 col = state.cubies[i].orient[j];
-            if (col == faceDir) {
-                fc_cubie[index] = colorOfSticker(col);
+            const glm::ivec3 axis = state.cubies[i].orient[j];
+            if (axis == faceDir) {
+                fc_cubie[index] = colorOfSticker(j, false);
                 break;
             }
-            if (col == -faceDir) {
-                fc_cubie[index] = colorOfSticker(-col);
+            if (axis == -faceDir) {
+                fc_cubie[index] = colorOfSticker(j, true);
                 break;
             }
         }
