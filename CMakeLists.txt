@@ -14,7 +14,9 @@ cmake_minimum_required(VERSION 3.20)
 project(cube
     VERSION 0.1.0
     DESCRIPTION "3x3x3 Rubik's Cube - learning project"
-    LANGUAGES CXX)
+    LANGUAGES CXX C)   # C 是必须的：GLAD 生成的是 C 源码，GLFW 内部也是 C。
+                       # 只写 CXX 的话，CMake 不会设置 CMAKE_C_COMPILE_OBJECT，
+                       # 一编译 .c 文件就报 "Missing variable is: CMAKE_C_COMPILE_OBJECT"。
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -52,16 +54,79 @@ FetchContent_Declare(glm
     GIT_TAG        1.0.1
     GIT_SHALLOW    TRUE)
 
-# GLAD —— OpenGL 函数加载器，由它自己的 CMake 脚本在线生成
-set(GLAD_PROFILE  "core"     CACHE STRING "" FORCE)
-set(GLAD_API      "gl=3.3"   CACHE STRING "" FORCE)
-set(GLAD_GENERATOR "cmake"   CACHE STRING "" FORCE)
+# GLAD —— OpenGL 函数加载器
+#
+# ⚠️ GLAD v2 的坑（全是踩出来的，一条都别删）：
+#
+#   1. 它的 CMakeLists.txt 在 cmake/ 子目录里，不在仓库根目录。
+#      不写 SOURCE_SUBDIR，FetchContent 会找不到入口，静默什么都不做 ——
+#      表现为 "ninja: error: unknown target 'glad'"。
+#
+#   2. 它不会自动创建 target，必须显式调用 glad_add_library()。
+#
+#   3. 生成器是 Python 写的，依赖 Jinja2：
+#          python -m pip install -i http://pypi.tuna.tsinghua.edu.cn/simple ^
+#              --trusted-host pypi.tuna.tsinghua.edu.cn jinja2
+#
+#   4. 【大陆网络必看】生成器默认要联网下载两个东西，而 raw.githubusercontent.com
+#      在这里是不通的（Python 的 urllib 不受代理管辖）：
+#        a. OpenGL 规格文件 gl.xml（2.7 MB）
+#           → 解法：往 _deps/glad-src/gl.xml 放一份本地副本。
+#             glad 的 load_specifications() 会优先用本地文件（见 glad/__main__.py:86）。
+#             下载地址（jsdelivr 镜像）：
+#               https://cdn.jsdelivr.net/gh/KhronosGroup/OpenGL-Registry@main/xml/gl.xml
+#        b. khrplatform.h
+#           → 解法：见下面的"离线补丁"。glad 只在文件【不存在】时才联网，
+#             所以只要在它生成之前把文件放好，就不会联网。
 FetchContent_Declare(glad
     GIT_REPOSITORY https://github.com/Dav1dde/glad.git
     GIT_TAG        v2.0.8
-    GIT_SHALLOW    TRUE)
+    GIT_SHALLOW    TRUE
+    SOURCE_SUBDIR  cmake)          # ← 关键：入口在 cmake/ 里
 
 FetchContent_MakeAvailable(glfw glm glad)
+
+# ---------------------------------------------------------------------------
+#  GLAD 离线补丁 —— 必须在 glad_add_library() 之前打！
+#
+#  ★ 顺序很关键（踩过）：
+#    glad_add_library() 内部会调用 add_custom_command()，那一刻生成命令就被
+#    固化进 build.ninja 了。之后再改 GladConfig.cmake 已经来不及 ——
+#    文件改了，但构建系统用的还是旧命令。
+#
+#  glad 的生成步骤是：
+#      remove_directory  <生成目录>      ← 每次都把整个目录删掉
+#      make_directory    <生成目录>
+#      python -m glad    ...
+#
+#  所以"提前把 khrplatform.h 放进去"没用，会被 remove_directory 清掉。
+#  必须把复制动作插在 make_directory 之后、python -m glad 之前。
+#
+#  这只用 CMake 自带的 -E copy_if_different，不需要 Python 脚本。
+#
+#  ⚠️ 删掉 build/ 重新配置时，这段补丁会随 glad 源码一起消失，
+#     但因为补丁代码就在本文件里，重新 configure 一次就会自动重新打上。
+# ---------------------------------------------------------------------------
+if(GLAD_SOURCES_DIR AND EXISTS "${GLAD_SOURCES_DIR}/cmake/GladConfig.cmake")
+    file(READ "${GLAD_SOURCES_DIR}/cmake/GladConfig.cmake" _glad_conf)
+
+    if(NOT _glad_conf MATCHES "CUBE_GLAD_OFFLINE_PATCH")
+        string(REPLACE
+            "COMMAND echo Generating with args \${GLAD_ARGS}"
+            "COMMAND \${CMAKE_COMMAND} -E copy_if_different \"${CMAKE_CURRENT_SOURCE_DIR}/third_party/khr/khrplatform.h\" \"${CMAKE_BINARY_DIR}/glad-generated/include/KHR/khrplatform.h\" # CUBE_GLAD_OFFLINE_PATCH
+        COMMAND echo Generating with args \${GLAD_ARGS}"
+            _glad_conf "${_glad_conf}")
+
+        file(WRITE "${GLAD_SOURCES_DIR}/cmake/GladConfig.cmake" "${_glad_conf}")
+        message(STATUS "  已给 GLAD 打上离线补丁（khrplatform.h 本地复制）")
+    else()
+        message(STATUS "  GLAD 离线补丁已存在")
+    endif()
+endif()
+
+glad_add_library(glad_gl_core_33 STATIC
+    API      gl:core=3.3
+    LOCATION ${CMAKE_BINARY_DIR}/glad-generated)
 
 # ---------------------------------------------------------------------------
 #  源文件清单（显式列出，不用 GLOB —— 新增文件要记得加到这里）
@@ -91,8 +156,7 @@ set(CUBE_GFX_SOURCES
     src/anim/animator.cpp)
 
 set(CUBE_APP_SOURCES
-    src/app/main.cpp
-    src/app/input_state.cpp)
+    src/app/main.cpp)
 
 set(CUBE_TEST_SOURCES
     tests/test_main.cpp
@@ -102,6 +166,15 @@ set(CUBE_TEST_SOURCES
 set(CUBE_TOOL_SOURCES
     tools/math_check.cpp
     tools/cube_check.cpp)
+
+# 渲染层已经写好的头文件。它们不影响构建，只用来在进度表里显示"到哪一步了"。
+# 阶段 2 你要写的四个 .cpp 都在 CUBE_GFX_SOURCES / CUBE_APP_SOURCES 里。
+set(CUBE_RENDER_HEADERS
+    src/render/gl_headers.hpp
+    src/render/color.hpp
+    src/render/mesh.hpp
+    src/render/shader.hpp
+    src/render/camera.hpp)
 
 # ---------------------------------------------------------------------------
 #  进度守卫
@@ -126,6 +199,25 @@ endforeach()
 foreach(relpath IN LISTS CUBE_PENDING)
     message(STATUS "    [skip] ${relpath}  <- 还没写")
 endforeach()
+
+# 渲染层已经就位的头文件（阶段 2 的接口契约）
+foreach(hdr IN LISTS CUBE_RENDER_HEADERS)
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${hdr}")
+        message(STATUS "    [ok]   ${hdr}   (接口就绪)")
+    endif()
+endforeach()
+
+message(STATUS "")
+if(NOT TARGET cube_app)
+    message(STATUS "  阶段 2 还没开始。要写的四个文件（详见 STAGE2.md）：")
+    message(STATUS "     1. src/render/mesh.cpp     生成立方体网格")
+    message(STATUS "     2. src/render/shader.cpp   编译 GLSL")
+    message(STATUS "     3. src/render/camera.cpp   轨道相机")
+    message(STATUS "     4. src/app/main.cpp        开窗 + 主循环 + 绘制")
+    message(STATUS "  四个都写完之后，cube_app 这个目标会自动出现。")
+else()
+    message(STATUS "  阶段 2 就绪：cube_app 可以构建了。")
+endif()
 message(STATUS "")
 
 # ---------------------------------------------------------------------------
@@ -187,24 +279,13 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tools/math_check.cpp")
 endif()
 
 # cube_check —— 逻辑层验证台（阶段 1 第二块：src/cube/）
-# 等到 state.cpp / moves.cpp 出现，这个目标才会被创建。
+# 它是逻辑层的"回归哨兵"：每次改动 src/cube/ 之后跑一遍。
+# 将来可以把它的断言搬进 tests/test_cube.cpp，然后删掉它。
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tools/cube_check.cpp"
    AND (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/cube/state.cpp"
         OR EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/cube/moves.cpp"))
     add_executable(cube_check tools/cube_check.cpp)
     target_link_libraries(cube_check PRIVATE cube_core glm::glm)
-endif()
-
-# state_check —— 只验证 state.cpp，不依赖 moves.cpp（临时验证器，用完可删）
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tools/state_check.cpp")
-    add_executable(state_check tools/state_check.cpp)
-    target_link_libraries(state_check PRIVATE cube_core glm::glm)
-endif()
-
-# probe2 —— 临时探针（排查完就删）
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tools/probe2.cpp")
-    add_executable(probe2 tools/probe2.cpp)
-    target_link_libraries(probe2 PRIVATE cube_core glm::glm)
 endif()
 
 # ---------------------------------------------------------------------------
@@ -220,7 +301,8 @@ endforeach()
 if(_gfx_existing AND TARGET cube_core)
     add_library(cube_gfx STATIC ${_gfx_existing})
     target_include_directories(cube_gfx PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
-    target_link_libraries(cube_gfx PUBLIC cube_core glfw glad::glad glm::glm)
+    # 只有这一层能碰 GLFW / GLAD。上层（app）通过 PUBLIC 传递拿到它们。
+    target_link_libraries(cube_gfx PUBLIC cube_core glfw glad_gl_core_33 glm::glm)
 endif()
 
 # ---------------------------------------------------------------------------

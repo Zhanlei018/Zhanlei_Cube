@@ -32,3 +32,6 @@ Desktop.ini
 
 # ---- kept on purpose ----
 !external/glad/CMakeLists.txt
+
+# ÁÙÊ±µ÷ÊÔÊä³ö
+/build/*.txt
