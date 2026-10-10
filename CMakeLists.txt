@@ -306,6 +306,19 @@ if(_gfx_existing AND TARGET cube_core)
 endif()
 
 # ---------------------------------------------------------------------------
+#  gl_basics —— OpenGL 入门示例（不是魔方的一部分，纯粹用来学）
+#
+#  learn/gl_basics.cpp 是一个自包含的程序：画一个彩色三角形，
+#  覆盖开窗 → 缓冲 → VAO → 着色器 → 绘制 的完整管线，每段都有编号和讲解。
+#
+#  读它，改它，玩坏它。等你能不看它写出三角形，mesh.cpp 就不难了。
+# ---------------------------------------------------------------------------
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/learn/gl_basics.cpp")
+    add_executable(gl_basics learn/gl_basics.cpp)
+    target_link_libraries(gl_basics PRIVATE glfw glad_gl_core_33)
+endif()
+
+# ---------------------------------------------------------------------------
 #  cube_app —— 可执行文件（main + 输入状态机；求解器按需接进来）
 # ---------------------------------------------------------------------------
 set(_app_existing "")
