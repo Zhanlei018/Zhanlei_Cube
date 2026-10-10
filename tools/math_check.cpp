@@ -14,6 +14,10 @@
 #include <cstdio>
 #include <glm/vec3.hpp>
 
+#if defined(_WIN32)
+#include <windows.h>
+#endif
+
 namespace {
 
 int g_failed = 0;
@@ -32,6 +36,13 @@ void report(const char* label, int actualX, int actualY, int actualZ,
 }  // namespace
 
 int main() {
+#if defined(_WIN32)
+    // Windows 控制台默认用 GBK(936) 解码，而源文件是 UTF-8，
+    // 不设这一句，所有中文都会变成 "鈥?" 这样的乱码。
+    // 这是 Windows 上写中文控制台程序的标配。
+    SetConsoleOutputCP(CP_UTF8);
+#endif
+
     std::printf("math_check —— 验证整数旋转矩阵\n\n");
 
     // ---- 用例 1：绕 X 轴转 90°，+Y 应该落到 +Z -----------------------------

@@ -75,9 +75,12 @@ FetchContent_MakeAvailable(glfw glm glad)
 # ---------------------------------------------------------------------------
 set(CUBE_CORE_SOURCES
     src/math/math.cpp
-    src/cube/cubie.cpp
     src/cube/state.cpp
     src/cube/moves.cpp)
+
+# 注意：cubie.cpp 已从清单里去掉。
+# Cubie 只有一个构造函数，它的实现直接写在 state.cpp 里了，
+# 单独为它开一个 .cpp 不值当。
 
 set(CUBE_GFX_SOURCES
     src/render/mesh.cpp
@@ -97,7 +100,8 @@ set(CUBE_TEST_SOURCES
 
 # 工具程序：有自己独立的 main()，单独编成 exe，不进 cube_core
 set(CUBE_TOOL_SOURCES
-    tools/math_check.cpp)
+    tools/math_check.cpp
+    tools/cube_check.cpp)
 
 # ---------------------------------------------------------------------------
 #  进度守卫
@@ -129,22 +133,32 @@ message(STATUS "")
 # ---------------------------------------------------------------------------
 set(_core_existing "")
 foreach(src IN LISTS CUBE_CORE_SOURCES)
-    # 在你写作业期间，math.cpp 本身是个带 main() 的自测程序，
-    # 直接并进 cube_core 会变成"两个 main"，链接必炸。
-    # 所以这里跳过它，让 math_check 目标单独编译它。
-    # >>> 等你把 main() 从 math.cpp 删掉，把下面这两行也删掉 <<<
-    if(src STREQUAL "src/math/math.cpp")
-        continue()
-    endif()
-
+    # 这里是一个曾经踩过的坑，留着给你看：
+    #
+    #   math.cpp 里必须没有 main()。
+    #   曾经在 math.cpp 里放过一个 main() 用来做自测，结果它一进这个库，
+    #   就会和 tests/test_main.cpp 里的 main() 撞车 —— 一个可执行文件
+    #   只能有一个 main()。
+    #
+    #   现在 math.cpp 里是纯函数，随便进库，所以下面这段跳过逻辑已经拆掉了。
+    #   凡是往 src/ 里加 .cpp，先问自己一句：它有 main() 吗？
+    #   有 → 它属于 tools/ 或 tests/，不属于 src/。
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${src}")
         list(APPEND _core_existing "${src}")
     endif()
 endforeach()
 
 if(_core_existing)
-    add_library(cube_core STATIC ${_core_existing})
+    add_library(cube_core STATIC ${_core_existing}
+       src/cube/state.cpp
+       src/cube/moves.cpp)
     target_include_directories(cube_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+
+    # cube_core 只用 GLM 的「整数」类型（imat3 / ivec3）。
+    # 这跟"零 OpenGL"不矛盾：GLM 的整数部分不碰 OpenGL，
+    #   它就是个头文件数学库，用 int 当底层类型，不会有浮点误差。
+    # 真正被禁止的是 GLFW 和 glad —— 那两个才会把窗口和显卡拖进来。
+    target_link_libraries(cube_core PUBLIC glm::glm)
 else()
     message(STATUS "  cube_core 还是空的 —— 先写 src/math/ 和 src/cube/ 吧。")
 endif()
@@ -163,16 +177,28 @@ endif()
 #        文件只能被"排除出某个目标"，不能全局排除 ——
 #        曾经误用 HEADER_FILE_ONLY，结果两边都不编译它，报 undefined reference。
 # ---------------------------------------------------------------------------
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/math/math.cpp"
-   AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tools/math_check.cpp")
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tools/math_check.cpp")
+    # 只编译 main()，实现从 cube_core 里链接过来。
+    # 千万别把 src/math/math.cpp 也列在这里 —— 那会让 math.cpp 被编译两遍
+    # （一遍进库、一遍进 exe），链接时报 multiple definition。
+    add_executable(math_check tools/math_check.cpp)
 
-    add_executable(math_check
-        tools/math_check.cpp
-        src/math/math.cpp
-        src/math/math.hpp)
+    target_link_libraries(math_check PRIVATE cube_core glm::glm)
+endif()
 
-    target_link_libraries(math_check PRIVATE glm::glm)
-    target_include_directories(math_check PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+# cube_check —— 逻辑层验证台（阶段 1 第二块：src/cube/）
+# 等到 state.cpp / moves.cpp 出现，这个目标才会被创建。
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tools/cube_check.cpp"
+   AND (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/cube/state.cpp"
+        OR EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/cube/moves.cpp"))
+    add_executable(cube_check tools/cube_check.cpp)
+    target_link_libraries(cube_check PRIVATE cube_core glm::glm)
+endif()
+
+# state_check —— 只验证 state.cpp，不依赖 moves.cpp（临时验证器，用完可删）
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tools/state_check.cpp")
+    add_executable(state_check tools/state_check.cpp)
+    target_link_libraries(state_check PRIVATE cube_core glm::glm)
 endif()
 
 # ---------------------------------------------------------------------------
