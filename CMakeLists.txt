@@ -401,3 +401,9 @@ else()
     message(STATUS "     运行：.\\build\\debug\\cube_app.exe")
 endif()
 message(STATUS "")
+
+# winding_check —— 临时工具：验证 mesh.cpp 的三角形绕序（用完可删）
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tools/winding_check.cpp")
+    add_executable(winding_check tools/winding_check.cpp)
+    target_link_libraries(winding_check PRIVATE cube_gfx)
+endif()

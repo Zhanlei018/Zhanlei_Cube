@@ -1,4 +1,4 @@
-#include "render/mesh.hpp"
+﻿#include "render/mesh.hpp"
 
 #include <cstdio>
 #include <iostream>
@@ -12,19 +12,20 @@ CubieMesh createCubieMesh() {
         float nx, ny, nz;  // 法线
     };
     struct FaceDef {
-        float nx, ny, nz;  // 面朝向
-        float ux, uy, uz;  // 面内的横向
-        float vx, vy, vz;  // 面内的纵向
+        float nx, ny, nz;
+        float ux, uy, uz;
+        float vx, vy, vz;
+        bool flip;  // true = 用反序 (b+0,b+2,b+1)
     };
+
     constexpr FaceDef kFaces[6] = {
-        // deepseek给出的面定义
-        // 法线    横向 u    纵向 v
-        {1, 0, 0, 0, 1, 0, 0, 0, 1},   // +X
-        {-1, 0, 0, 0, 1, 0, 0, 0, 1},  // -X
-        {0, 1, 0, 0, 0, 1, 1, 0, 0},   // +Y
-        {0, -1, 0, 0, 0, 1, 1, 0, 0},  // -Y
-        {0, 0, 1, 1, 0, 0, 0, 1, 0},   // +Z
-        {0, 0, -1, 1, 0, 0, 0, 1, 0},  // -Z
+        // 法线      u      v        flip
+        {1, 0, 0, 0, 1, 0, 0, 0, 1, true},    // +X  反序
+        {-1, 0, 0, 0, 1, 0, 0, 0, 1, false},  // -X  正序
+        {0, 1, 0, 0, 0, 1, 1, 0, 0, true},    // +Y  反序
+        {0, -1, 0, 0, 0, 1, 1, 0, 0, false},  // -Y  正序
+        {0, 0, 1, 1, 0, 0, 0, 1, 0, true},    // +Z  反序
+        {0, 0, -1, 1, 0, 0, 0, 1, 0, false},  // -Z  正序
     };
     const float h = 0.5f;
     std::vector<Vertex> verts;
@@ -44,12 +45,11 @@ CubieMesh createCubieMesh() {
             v.nz = face.nz;
             verts.push_back(v);
         }
-        const float handedness = face.uy * face.vz - face.uz * face.vy;
         const GLuint b = static_cast<GLuint>(f * 4);
-        if (handedness > 0.0f) {
-            indices.insert(indices.end(), {b + 0, b + 1, b + 2, b + 0, b + 2, b + 3});
-        } else {
+        if (face.flip) {
             indices.insert(indices.end(), {b + 0, b + 2, b + 1, b + 0, b + 3, b + 2});
+        } else {
+            indices.insert(indices.end(), {b + 0, b + 1, b + 2, b + 0, b + 2, b + 3});
         }
     }
     for (int i = 0; i < 6; ++i) {  // 计算索引

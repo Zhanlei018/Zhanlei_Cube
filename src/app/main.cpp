@@ -1,4 +1,4 @@
-#include "cube/moves.hpp"
+﻿#include "cube/moves.hpp"
 #include "cube/state.hpp"
 #include "render/camera.hpp"
 #include "render/color.hpp"
@@ -79,9 +79,6 @@ int main() {
     std::printf("[GL] 渲染器: %s\n", glGetString(GL_RENDERER));
     std::printf("[GL] 版本  : %s\n", glGetString(GL_VERSION));
     glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
-    glFrontFace(GL_CCW);
     cube::Shader shader;
     shader.loadFromFiles("shaders/cube.vert", "shaders/cube.frag");
     cube::CubieMesh mesh = cube::createCubieMesh();
@@ -100,7 +97,7 @@ int main() {
 
         for (int i = 0; i < cube::kCubieCount; i++) {
             glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(state.cubies[i].pos));
-            model = glm::scale(model, glm::vec3(0.96f));
+            model = glm::scale(model, glm::vec3(1.0f));
             shader.setMat4("uModel", &model[0][0]);
             for (int f = 0; f < 6; ++f) {
                 glm::ivec3 dir(0);

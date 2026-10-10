@@ -44,8 +44,8 @@ bool Shader::loadFromFiles(const std::string& vertPath, const std::string& fragP
         glGetShaderiv(vertex, GL_INFO_LOG_LENGTH, &len);
         std::vector<char> log(static_cast<size_t>(len > 1 ? len : 1), '\0');
         glGetShaderInfoLog(vertex, len, nullptr, log.data());
+        std::cerr << "【错误】顶点着色器编译失败：" << std::endl;
         std::cerr << log.data() << std::endl;
-        std::cerr << "【错误】顶点着色器编译失败:\n";
         std::istringstream iss(vertexCode);
         std::string line;
         int n = 1;
@@ -66,8 +66,8 @@ bool Shader::loadFromFiles(const std::string& vertPath, const std::string& fragP
         glGetShaderiv(fragment, GL_INFO_LOG_LENGTH, &len);
         std::vector<char> log(static_cast<size_t>(len > 1 ? len : 1), '\0');  
         glGetShaderInfoLog(fragment, len, nullptr, log.data());
+        std::cerr << "【错误】片元着色器编译失败：" << std::endl;
         std::cerr << log.data() << std::endl;
-        std::cerr << "【错误】片元着色器编译失败:\n";
         std::istringstream iss(fragmentCode);
         std::string line;
         int n = 1;
