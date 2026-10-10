@@ -44,8 +44,13 @@ CubieMesh createCubieMesh() {
             v.nz = face.nz;
             verts.push_back(v);
         }
+        const float handedness = face.uy * face.vz - face.uz * face.vy;
         const GLuint b = static_cast<GLuint>(f * 4);
-        indices.insert(indices.end(), {b + 0, b + 1, b + 2, b + 0, b + 2, b + 3});
+        if (handedness > 0.0f) {
+            indices.insert(indices.end(), {b + 0, b + 1, b + 2, b + 0, b + 2, b + 3});
+        } else {
+            indices.insert(indices.end(), {b + 0, b + 2, b + 1, b + 0, b + 3, b + 2});
+        }
     }
     for (int i = 0; i < 6; ++i) {  // 计算索引
         mesh.faceIndexOffset[i] = i * 6;

@@ -208,17 +208,9 @@ foreach(hdr IN LISTS CUBE_RENDER_HEADERS)
 endforeach()
 
 message(STATUS "")
-if(NOT TARGET cube_app)
-    message(STATUS "  阶段 2 还没开始。要写的四个文件（详见 STAGE2.md）：")
-    message(STATUS "     1. src/render/mesh.cpp     生成立方体网格")
-    message(STATUS "     2. src/render/shader.cpp   编译 GLSL")
-    message(STATUS "     3. src/render/camera.cpp   轨道相机")
-    message(STATUS "     4. src/app/main.cpp        开窗 + 主循环 + 绘制")
-    message(STATUS "  四个都写完之后，cube_app 这个目标会自动出现。")
-else()
-    message(STATUS "  阶段 2 就绪：cube_app 可以构建了。")
-endif()
-message(STATUS "")
+
+# 阶段 2 的状态判断放在文件【末尾】——
+# 因为 cube_app 是在下面第 300 多行才创建的，在这里判断只会永远看到"还没开始"。
 
 # ---------------------------------------------------------------------------
 #  cube_core —— 纯逻辑，零 OpenGL。这一层必须能脱离窗口独立编译和测试。
@@ -390,7 +382,22 @@ if(CUBE_HAVE_APP AND WIN32
 endif()
 
 # ---------------------------------------------------------------------------
-#  收尾
+#  收尾 —— 所有目标都建好之后，才能判断当前进行到哪一步
+#
+#  （这里曾经写错过：把阶段 2 的判断放在文件中间，
+#    而 cube_app 是在后面才创建的，于是那句判断永远打印"还没开始"。）
 # ---------------------------------------------------------------------------
-message(STATUS "  下一步：读 NOTES.md，然后从 src/math + src/cube 开始动手。")
+message(STATUS "")
+if(NOT TARGET cube_app)
+    message(STATUS "  阶段 2 还没开始。要写的四个文件（详见 STAGE2.md）：")
+    message(STATUS "     1. src/render/mesh.cpp     生成立方体网格")
+    message(STATUS "     2. src/render/shader.cpp   编译 GLSL")
+    message(STATUS "     3. src/render/camera.cpp   轨道相机")
+    message(STATUS "     4. src/app/main.cpp        开窗 + 主循环 + 绘制")
+    message(STATUS "  四个都写完之后，cube_app 这个目标会自动出现。")
+else()
+    message(STATUS "  阶段 2 就绪：cube_app 可以构建了。")
+    message(STATUS "     构建：cmake --build --preset debug --target cube_app")
+    message(STATUS "     运行：.\\build\\debug\\cube_app.exe")
+endif()
 message(STATUS "")
