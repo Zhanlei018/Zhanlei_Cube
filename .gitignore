@@ -30,11 +30,13 @@ Thumbs.db
 Desktop.ini
 .DS_Store
 
-# ---- 本地学习资料，不进仓库 ----
-# learn/ 是 OpenGL 入门示例（画三角形），STAGE2.md 是阶段 2 的路线图。
-# 它们只对自己有用，不构成项目的一部分。
+# ---- 本地笔记，不进仓库 ----
+# learn/          OpenGL 入门示例（画三角形），纯自学用
+# STAGE2.md       阶段 2 的路线图（那部分已经写完了）
+# DEVELOPMENT.md  开发笔记：环境、踩坑记录、已有 300 多行，属于个人笔记
 /learn/
 /STAGE2.md
+/DEVELOPMENT.md
 
 # ---- 临时调试输出 ----
 /build/*.txt

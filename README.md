@@ -1,7 +1,6 @@
 # Cube —— 3x3x3 魔方（C++17 + OpenGL）
 
 一个**边写边学**的项目：自己实现魔方逻辑、自己写渲染管线。
-每一步的实现和踩过的坑都记在 [DEVELOPMENT.md](DEVELOPMENT.md) 里。
 
 ---
 
@@ -12,7 +11,6 @@ D:\Cube
 ├── CMakeLists.txt          构建脚本（含进度守卫，缺文件也能编）
 ├── CMakePresets.json       debug / release 两套预设
 ├── README.md               本文件：目录结构 + 启动方式
-├── DEVELOPMENT.md          开发笔记：环境、架构、阶段路线图、踩坑记录
 ├── NOTES.md                工程约定：坐标系、配色表、状态不变量
 │
 ├── shaders/                cube.vert / cube.frag
@@ -27,13 +25,16 @@ D:\Cube
 │   └── app/          main + 主循环
 │
 ├── tools/            有独立 main() 的验证程序
-│   ├── math_check.cpp     数学层回归测试
-│   └── cube_check.cpp     逻辑层回归测试
+│   ├── math_check.cpp      数学层回归测试
+│   ├── cube_check.cpp      逻辑层回归测试
+│   └── winding_check.cpp   三角形绕序检查（开背面剔除前先跑它）
 │
 ├── tests/            纯逻辑单元测试（不链接任何图形库）
 │
 └── third_party/khr/  离线依赖：khrplatform.h（GLAD 生成时需要）
 ```
+
+> 开发笔记（环境搭建、踩坑记录、阶段路线图）保留在本地 `DEVELOPMENT.md`，不进仓库。
 
 ---
 
@@ -85,4 +86,4 @@ cmake --build --preset debug --target math_check   # 数学层回归测试
 | 滚轮 | 推拉远近 |
 | 窗口关闭按钮 | 退出 |
 
-键盘操作（转动魔方、打乱、复原）**尚未实现** —— 见 [DEVELOPMENT.md](DEVELOPMENT.md) 的"下一步"。
+键盘操作（转动魔方、打乱、复原）**尚未实现**。
