@@ -1,4 +1,4 @@
-﻿#include "cube/moves.hpp"
+#include "cube/moves.hpp"
 #include "cube/state.hpp"
 #include "render/camera.hpp"
 #include "render/color.hpp"
@@ -51,6 +51,12 @@ void scrollCallback(GLFWwindow* window, double xoff, double yoff) {
     ;
 }
 
+void framebufferSizeCallback(GLFWwindow* window, int width, int height) {
+    (void)window;
+    glViewport(0, 0, width, height);
+    camera.setViewport(width, height);
+}
+
 int main() {
 #if defined(_WIN32)
     SetConsoleOutputCP(CP_UTF8);
@@ -83,6 +89,16 @@ int main() {
     shader.loadFromFiles("shaders/cube.vert", "shaders/cube.frag");
     cube::CubieMesh mesh = cube::createCubieMesh();
     cube::State state = cube::makeSolvedState();
+    // 启动时同步一次 viewport 和宽高比（窗口未必是 1280x720）
+    {
+        int fbW = 0;
+        int fbH = 0;
+        glfwGetFramebufferSize(window, &fbW, &fbH);
+        glViewport(0, 0, fbW, fbH);
+        camera.setViewport(fbW, fbH);
+    }
+
+    glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
     glfwSetMouseButtonCallback(window, mouseButtonCallback);
     glfwSetCursorPosCallback(window, cursorPosCallback);
     glfwSetScrollCallback(window, scrollCallback);

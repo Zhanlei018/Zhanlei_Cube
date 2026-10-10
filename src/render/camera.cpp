@@ -34,7 +34,7 @@ void OrbitCamera::orbit(float dxPixels, float dyPixels) {
 void OrbitCamera::zoom(float scrollTicks){
     const float zoomSpeed = 0.5f;
     radius -= scrollTicks * zoomSpeed;
-    if (radius < 2.0f) radius = 2.0f;
+    if (radius < 7.0f) radius = 7.0f;
     if (radius > 20.0f) radius = 20.0f;
 }
 
