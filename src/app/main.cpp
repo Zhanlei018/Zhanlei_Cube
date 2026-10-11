@@ -1,3 +1,4 @@
+#include "anim/animator.hpp"
 #include "cube/moves.hpp"
 #include "cube/state.hpp"
 #include "render/camera.hpp"
@@ -57,6 +58,54 @@ void framebufferSizeCallback(GLFWwindow* window, int width, int height) {
     camera.setViewport(width, height);
 }
 
+cube::Animator g_animator;
+
+void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    if (action != GLFW_PRESS)
+        return;
+    if (key == GLFW_KEY_ESCAPE) {
+        glfwSetWindowShouldClose(window, GLFW_TRUE);
+        return;
+    }
+    bool shift;
+    shift = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS ||
+            glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT) == GLFW_PRESS;
+    char face = '0';
+    switch (key) {
+        case GLFW_KEY_U:
+            face = 'U';
+            break;
+        case GLFW_KEY_D:
+            face = 'D';
+            break;
+        case GLFW_KEY_L:
+            face = 'L';
+            break;
+        case GLFW_KEY_R:
+            face = 'R';
+            break;
+        case GLFW_KEY_F:
+            face = 'F';
+            break;
+        case GLFW_KEY_B:
+            face = 'B';
+            break;
+        default:
+            return;
+    }
+    std::string token(1, face);
+    if (shift)
+        token += "\'";
+    std::optional<cube::Move> maybeMove = cube::parseMove(token);
+    if (!maybeMove)
+        return;
+    cube::Move realmove = *maybeMove;
+    g_animator.push(realmove);
+    std::printf("【入队】 %s  队列里还有 %zu 个\n", token.c_str(), g_animator.pendingCount());
+    (void)window;
+    (void)key;
+}
+
 int main() {
 #if defined(_WIN32)
     SetConsoleOutputCP(CP_UTF8);
@@ -97,23 +146,36 @@ int main() {
         glViewport(0, 0, fbW, fbH);
         camera.setViewport(fbW, fbH);
     }
-
     glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
     glfwSetMouseButtonCallback(window, mouseButtonCallback);
     glfwSetCursorPosCallback(window, cursorPosCallback);
     glfwSetScrollCallback(window, scrollCallback);
+    glfwSetKeyCallback(window, keyCallback);
+    std::printf("【操作】:R/U/F/L/D/B 转面(按住 Shift 逆时针),Esc 退出\n\n");
+    double lastTime = glfwGetTime();
+
     while (glfwWindowShouldClose(window) == 0) {
         glfwPollEvents();
+        double dt = std::clamp(glfwGetTime() - lastTime, 0.0, 0.05);
+        lastTime = glfwGetTime();
+        g_animator.update(state, dt);
+        const glm::mat4 animRot = g_animator.rotationMatrix();
         glClearColor(0.10f, 0.11f, 0.14f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         shader.use();
         shader.setMat4("uView", &camera.viewMatrix()[0][0]);
         shader.setMat4("uProj", &camera.projectionMatrix()[0][0]);
         glBindVertexArray(mesh.vao);
-
         for (int i = 0; i < cube::kCubieCount; i++) {
             glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(state.cubies[i].pos));
             model = glm::scale(model, glm::vec3(1.0f));
+            if(g_animator.isAnimating()){
+                cube::Move m = g_animator.currentMove();
+                if(state.cubies[i].pos[m.axis] == m.layer - 1){
+                    glm::mat4 animRot = g_animator.rotationMatrix();
+                    model = animRot * model;
+                }
+            }
             shader.setMat4("uModel", &model[0][0]);
             for (int f = 0; f < 6; ++f) {
                 glm::ivec3 dir(0);

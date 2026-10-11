@@ -152,7 +152,11 @@ set(CUBE_GFX_SOURCES
     src/render/shader.cpp
     src/render/camera.cpp
     src/input/picking.cpp
-    src/input/drag.cpp
+    src/input/drag.cpp)
+
+# 动画层：纯逻辑（只处理 Move 和浮点时间），不碰 OpenGL。
+# 单独成一个库，和 cube_core 同级 —— 这样它也能脱离窗口独立测试。
+set(CUBE_ANIM_SOURCES
     src/anim/animator.cpp)
 
 set(CUBE_APP_SOURCES
@@ -181,8 +185,8 @@ set(CUBE_RENDER_HEADERS
 # ---------------------------------------------------------------------------
 set(CUBE_WRITTEN "")
 set(CUBE_PENDING "")
-foreach(relpath IN LISTS CUBE_CORE_SOURCES CUBE_GFX_SOURCES CUBE_APP_SOURCES
-                          CUBE_TEST_SOURCES CUBE_TOOL_SOURCES)
+foreach(relpath IN LISTS CUBE_CORE_SOURCES CUBE_ANIM_SOURCES CUBE_GFX_SOURCES
+                          CUBE_APP_SOURCES CUBE_TEST_SOURCES CUBE_TOOL_SOURCES)
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${relpath}")
         list(APPEND CUBE_WRITTEN "${relpath}")
     else()
@@ -233,9 +237,7 @@ foreach(src IN LISTS CUBE_CORE_SOURCES)
 endforeach()
 
 if(_core_existing)
-    add_library(cube_core STATIC ${_core_existing}
-       src/cube/state.cpp
-       src/cube/moves.cpp)
+    add_library(cube_core STATIC ${_core_existing})
     target_include_directories(cube_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
     # cube_core 只用 GLM 的「整数」类型（imat3 / ivec3）。
@@ -245,6 +247,31 @@ if(_core_existing)
     target_link_libraries(cube_core PUBLIC glm::glm)
 else()
     message(STATUS "  cube_core 还是空的 —— 先写 src/math/ 和 src/cube/ 吧。")
+endif()
+
+# ---------------------------------------------------------------------------
+#  cube_anim —— 动画层
+#
+#  和 cube_core 一样是"纯逻辑"：
+#    - 只依赖 cube_core 和 GLM
+#    - 不链接 GLFW / glad，所以写不进任何 OpenGL 调用
+#
+#  这样做的意义：动画队列的推进逻辑可以脱离窗口独立测试，
+#  也不会和渲染代码纠缠在一起。
+# ---------------------------------------------------------------------------
+set(_anim_existing "")
+foreach(src IN LISTS CUBE_ANIM_SOURCES)
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${src}")
+        list(APPEND _anim_existing "${src}")
+    endif()
+endforeach()
+
+if(_anim_existing AND TARGET cube_core)
+    add_library(cube_anim STATIC ${_anim_existing})
+    target_include_directories(cube_anim PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(cube_anim PUBLIC cube_core glm::glm)
+else()
+    message(STATUS "  cube_anim 还是空的 —— 待写 src/anim/animator.cpp。")
 endif()
 
 # ---------------------------------------------------------------------------
@@ -322,7 +349,9 @@ endforeach()
 
 if(_app_existing AND TARGET cube_gfx)
     add_executable(cube_app ${_app_existing})
-    target_link_libraries(cube_app PRIVATE cube_gfx)
+    # cube_gfx 已经 PUBLIC 传递了 cube_core；cube_anim 是独立的一支，
+    # 所以它也要单独链上（cube_gfx 不依赖动画层 —— 渲染不该知道动画的存在）。
+    target_link_libraries(cube_app PRIVATE cube_gfx cube_anim)
     set(CUBE_HAVE_APP TRUE)
 else()
     set(CUBE_HAVE_APP FALSE)
