@@ -436,3 +436,10 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tools/winding_check.cpp")
     add_executable(winding_check tools/winding_check.cpp)
     target_link_libraries(winding_check PRIVATE cube_gfx)
 endif()
+
+# 临时：picking 验证
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tools/pick_check.cpp")
+    add_executable(pick_check tools/pick_check.cpp)
+    target_link_libraries(pick_check PRIVATE cube_gfx)
+endif()
+

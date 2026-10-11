@@ -27,9 +27,9 @@ D:\Cube
 ├── tools/            有独立 main() 的验证程序
 │   ├── math_check.cpp      数学层回归测试
 │   ├── cube_check.cpp      逻辑层回归测试
-│   └── winding_check.cpp   三角形绕序检查（开背面剔除前先跑它）
+│   └── winding_check.cpp   三角形绕序检查
 │
-├── tests/            纯逻辑单元测试（不链接任何图形库）
+├── tests/            纯逻辑单元测试
 │
 └── third_party/khr/  离线依赖：khrplatform.h（GLAD 生成时需要）
 ```

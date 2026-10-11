@@ -1,6 +1,7 @@
 #include "anim/animator.hpp"
 #include "cube/moves.hpp"
 #include "cube/state.hpp"
+#include "input/picking.hpp"
 #include "render/camera.hpp"
 #include "render/color.hpp"
 #include "render/gl_headers.hpp"
@@ -26,6 +27,8 @@ cube::OrbitCamera camera;
 bool g_dragging = false;
 double g_lastX = 0.0;
 double g_lastY = 0.0;
+double g_mouseX = 0.0;
+double g_mouseY = 0.0;
 
 void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
     if (button != GLFW_MOUSE_BUTTON_LEFT)
@@ -43,6 +46,8 @@ void cursorPosCallback(GLFWwindow* window, double x, double y) {
     const float dy = static_cast<float>(y - g_lastY);
     g_lastX = x;
     g_lastY = y;
+    g_mouseX = x;
+    g_mouseY = y;
     if (g_dragging)
         camera.orbit(dx, dy);
 }
@@ -157,6 +162,11 @@ int main() {
     while (glfwWindowShouldClose(window) == 0) {
         glfwPollEvents();
         double dt = std::clamp(glfwGetTime() - lastTime, 0.0, 0.05);
+        int fbW = 0, fbH = 0;
+        glfwGetFramebufferSize(window, &fbW, &fbH);
+        const cube::PickResult pick =
+            cube::pickAtScreen(static_cast<int>(g_mouseX), static_cast<int>(g_mouseY), fbW, fbH,
+                               camera.viewMatrix(), camera.projectionMatrix());
         lastTime = glfwGetTime();
         g_animator.update(state, dt);
         const glm::mat4 animRot = g_animator.rotationMatrix();
@@ -169,9 +179,10 @@ int main() {
         for (int i = 0; i < cube::kCubieCount; i++) {
             glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(state.cubies[i].pos));
             model = glm::scale(model, glm::vec3(1.0f));
-            if(g_animator.isAnimating()){
+            const bool hovered = pick.hit && (state.cubies[i].pos == pick.cell);
+            if (g_animator.isAnimating()) {
                 cube::Move m = g_animator.currentMove();
-                if(state.cubies[i].pos[m.axis] == m.layer - 1){
+                if (state.cubies[i].pos[m.axis] == m.layer - 1) {
                     glm::mat4 animRot = g_animator.rotationMatrix();
                     model = animRot * model;
                 }
@@ -180,7 +191,10 @@ int main() {
             for (int f = 0; f < 6; ++f) {
                 glm::ivec3 dir(0);
                 dir[f / 2] = (f % 2 == 0) ? 1 : -1;
-                const glm::vec3 rgb = cube::colorRgb(cube::stickerColor(state.cubies[i], dir));
+                glm::vec3 rgb = cube::colorRgb(cube::stickerColor(state.cubies[i], dir));
+                if (hovered) {
+                    rgb = glm::min(rgb * 1.6f, glm::vec3(1.0f));
+                }
                 shader.setVec3("uColor", &rgb[0]);
                 glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT,
                                reinterpret_cast<void*>(static_cast<uintptr_t>(

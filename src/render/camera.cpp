@@ -26,7 +26,7 @@ glm::mat4 OrbitCamera::viewProjectionMatrix() const {
 void OrbitCamera::orbit(float dxPixels, float dyPixels) {
     const float sensibility = 0.005f;
     yaw -= dxPixels * sensibility;
-    pitch -= dyPixels * sensibility;
+    pitch += dyPixels * sensibility;
     const float maxPitch = glm::radians(89.0f);
     pitch = std::clamp(pitch, -maxPitch, maxPitch);
 }
