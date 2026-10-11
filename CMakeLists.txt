@@ -159,6 +159,9 @@ set(CUBE_GFX_SOURCES
 set(CUBE_ANIM_SOURCES
     src/anim/animator.cpp)
 
+set(CUBE_SOLVER_SOURCES
+    src/solver/solver.cpp)
+
 set(CUBE_APP_SOURCES
     src/app/main.cpp)
 
@@ -185,7 +188,7 @@ set(CUBE_RENDER_HEADERS
 # ---------------------------------------------------------------------------
 set(CUBE_WRITTEN "")
 set(CUBE_PENDING "")
-foreach(relpath IN LISTS CUBE_CORE_SOURCES CUBE_ANIM_SOURCES CUBE_GFX_SOURCES
+foreach(relpath IN LISTS CUBE_CORE_SOURCES CUBE_ANIM_SOURCES CUBE_SOLVER_SOURCES CUBE_GFX_SOURCES
                           CUBE_APP_SOURCES CUBE_TEST_SOURCES CUBE_TOOL_SOURCES)
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${relpath}")
         list(APPEND CUBE_WRITTEN "${relpath}")
@@ -274,6 +277,21 @@ else()
     message(STATUS "  cube_anim 还是空的 —— 待写 src/anim/animator.cpp。")
 endif()
 
+set(_solver_existing "")
+foreach(src IN LISTS CUBE_SOLVER_SOURCES)
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${src}")
+        list(APPEND _solver_existing "${src}")
+    endif()
+endforeach()
+
+if(_solver_existing AND TARGET cube_core)
+    add_library(cube_solver STATIC ${_solver_existing})
+    target_include_directories(cube_solver PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(cube_solver PUBLIC cube_core glm::glm)
+else()
+    message(STATUS "  cube_anim 还是空的 —— 待写 src/anim/animator.cpp。")
+endif()
+
 # ---------------------------------------------------------------------------
 #  math_check —— 数学层验证台（阶段 1 的作业用这个跑）
 #
@@ -351,7 +369,7 @@ if(_app_existing AND TARGET cube_gfx)
     add_executable(cube_app ${_app_existing})
     # cube_gfx 已经 PUBLIC 传递了 cube_core；cube_anim 是独立的一支，
     # 所以它也要单独链上（cube_gfx 不依赖动画层 —— 渲染不该知道动画的存在）。
-    target_link_libraries(cube_app PRIVATE cube_gfx cube_anim)
+    target_link_libraries(cube_app PRIVATE cube_gfx cube_anim cube_solver)
     set(CUBE_HAVE_APP TRUE)
 else()
     set(CUBE_HAVE_APP FALSE)
@@ -460,5 +478,11 @@ endif()
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tools/drag_e2e.cpp")
     add_executable(drag_e2e tools/drag_e2e.cpp)
     target_link_libraries(drag_e2e PRIVATE cube_gfx cube_anim)
+endif()
+
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tools/scramble_check.cpp")
+    add_executable(scramble_check tools/scramble_check.cpp)
+    target_link_libraries(scramble_check PRIVATE cube_solver cube_core)
 endif()
 

@@ -20,6 +20,14 @@ void Animator::endMove(State& state) {
     animating_ = false;
 }
 
+void Animator::clearHistory(State& state) {
+    state.history.clear();
+}
+
+void Animator::applySilent(State& state, const Move& move) {
+    cube::applyMove(state, move);
+}
+
 void Animator::push(const Move& move, float startProgress) {
     if (queue_.size() < 16) {
         enqueue(move);

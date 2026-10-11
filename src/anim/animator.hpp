@@ -14,6 +14,8 @@ public:
 
     void beginMove(const Move& move, float startProgress = 0.0f);
     void endMove(State& state);
+    void clearHistory(State& state);
+    void applySilent(State& state, const Move& move);
 
     void update(State& state, float dt);
     glm::mat4 rotationMatrix() const;

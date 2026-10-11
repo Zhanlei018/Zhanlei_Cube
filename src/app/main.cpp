@@ -1,6 +1,7 @@
 #include "anim/animator.hpp"
 #include "cube/moves.hpp"
 #include "cube/state.hpp"
+#include "solver/solver.hpp"
 #include "input/drag.hpp"
 #include "input/picking.hpp"
 #include "render/camera.hpp"
@@ -36,6 +37,7 @@ double g_mouseY = 0.0;
 int g_fbW = 1280;
 int g_fbH = 720;
 bool g_orbiting = false;
+bool g_restorePending = false;
 cube::Animator g_animator;
 
 cube::Ray rayFromMouse() {
@@ -117,10 +119,21 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
     if (ctrl && key == GLFW_KEY_R) {
         const std::vector<cube::Move> undo = cube::invertedSequence(state.history);
         g_animator.pushSequence(undo);
-        state.history.clear();
+        g_restorePending = true;
         std::printf("【复原】排入 %zu 个动作\n", undo.size());
         return;
     }
+    if (key == GLFW_KEY_S) {
+        g_animator.clearHistory(state);
+        const std::vector<cube::Move> scramble = cube::randomScramble(25);
+        for (const cube::Move& m : scramble) {
+            g_animator.applySilent(state, m);
+            g_animator.push(m);
+        }
+        std::printf("【打乱】%zu 步\n", scramble.size());
+        return;
+    }
+
     if (key == GLFW_KEY_ESCAPE) {
         glfwSetWindowShouldClose(window, GLFW_TRUE);
         return;
@@ -224,6 +237,12 @@ int main() {
                                camera.viewMatrix(), camera.projectionMatrix());
         lastTime = glfwGetTime();
         g_animator.update(state, dt);
+
+        if (g_restorePending && !g_animator.isAnimating() && g_animator.pendingCount() == 0) {
+            g_animator.clearHistory(state);
+            g_restorePending = false;
+            std::printf("【复原】完成，history 已清空\n");
+        }
 
         // 拖动预览：用当前鼠标位置更新预览状态
         if (g_dragging && g_drag.valid) {
