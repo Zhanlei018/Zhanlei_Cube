@@ -486,3 +486,9 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tools/scramble_check.cpp")
     target_link_libraries(scramble_check PRIVATE cube_solver cube_core)
 endif()
 
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tools/flow_check.cpp")
+    add_executable(flow_check tools/flow_check.cpp)
+    target_link_libraries(flow_check PRIVATE cube_anim cube_solver cube_core)
+endif()
+
