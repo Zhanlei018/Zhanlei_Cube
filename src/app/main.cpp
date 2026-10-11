@@ -1,6 +1,7 @@
 #include "anim/animator.hpp"
 #include "cube/moves.hpp"
 #include "cube/state.hpp"
+#include "input/drag.hpp"
 #include "input/picking.hpp"
 #include "render/camera.hpp"
 #include "render/color.hpp"
@@ -25,20 +26,51 @@
 
 cube::OrbitCamera camera;
 cube::State state;
+cube::DragAnchor g_anchor;
 bool g_dragging = false;
 double g_lastX = 0.0;
 double g_lastY = 0.0;
 double g_mouseX = 0.0;
 double g_mouseY = 0.0;
+int g_fbW = 1280;
+int g_fbH = 720;
+bool g_orbiting = false;
+cube::Animator g_animator;
+
+cube::Ray rayFromMouse() {
+    return cube::makeRayFromScreen(static_cast<int>(g_mouseX), static_cast<int>(g_mouseY), g_fbW,
+                                   g_fbH, camera.viewMatrix(), camera.projectionMatrix());
+}
 
 void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
+    g_orbiting = false;
     if (button != GLFW_MOUSE_BUTTON_LEFT)
         return;
     if (action == GLFW_PRESS) {
-        g_dragging = true;
+        const cube::PickResult pick =
+            cube::pickAtScreen(static_cast<int>(g_mouseX), static_cast<int>(g_mouseY), g_fbW, g_fbH,
+                               camera.viewMatrix(), camera.projectionMatrix());
+
+        g_anchor = cube::makeAnchor(pick);
+
+        if (g_anchor.valid) {
+            g_dragging = true;
+            std::printf("【锚点】cell=(%d,%d,%d) normal=(%d,%d,%d)\n", pick.cell.x, pick.cell.y,
+                        pick.cell.z, pick.normal.x, pick.normal.y, pick.normal.z);
+        } else {
+            g_orbiting = true;
+        }
         glfwGetCursorPos(window, &g_lastX, &g_lastY);
     } else if (action == GLFW_RELEASE) {
+        if (g_dragging && g_anchor.valid) {
+            cube::Move m;
+            if (cube::makeMoveFromDrag(g_anchor, rayFromMouse(), m)) {
+                g_animator.push(m);
+                std::printf("【拖动】axis=%d layer=%d dir=%+d\n", m.axis, m.layer, m.dir);
+            }
+        }
         g_dragging = false;
+        g_anchor.valid = false;
     }
 }
 
@@ -49,22 +81,21 @@ void cursorPosCallback(GLFWwindow* window, double x, double y) {
     g_lastY = y;
     g_mouseX = x;
     g_mouseY = y;
-    if (g_dragging)
+    if (g_orbiting)
         camera.orbit(dx, dy);
 }
 
 void scrollCallback(GLFWwindow* window, double xoff, double yoff) {
     camera.zoom(static_cast<float>(yoff));
-    ;
 }
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height) {
     (void)window;
     glViewport(0, 0, width, height);
     camera.setViewport(width, height);
+    g_fbW = width;
+    g_fbH = height;
 }
-
-cube::Animator g_animator;
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (action != GLFW_PRESS)
@@ -159,6 +190,8 @@ int main() {
         glfwGetFramebufferSize(window, &fbW, &fbH);
         glViewport(0, 0, fbW, fbH);
         camera.setViewport(fbW, fbH);
+        g_fbW = fbW;
+        g_fbH = fbH;
     }
     glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
     glfwSetMouseButtonCallback(window, mouseButtonCallback);
