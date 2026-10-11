@@ -443,3 +443,10 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tools/pick_check.cpp")
     target_link_libraries(pick_check PRIVATE cube_gfx)
 endif()
 
+
+# 临时：drag 验证
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tools/drag_check.cpp")
+    add_executable(drag_check tools/drag_check.cpp)
+    target_link_libraries(drag_check PRIVATE cube_gfx)
+endif()
+

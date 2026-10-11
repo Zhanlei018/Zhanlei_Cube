@@ -16,6 +16,7 @@ public:
     bool isAnimating() const { return animating_; }
     std::size_t pendingCount() const { return queue_.size(); }
     constexpr static float ease(float t);
+    void pushSequence(const std::vector<Move>& moves);
 
 private:
     std::deque<Move> queue_;   // 等着播的动作
@@ -23,5 +24,6 @@ private:
     float elapsed_ = 0.0f;     // 当前动作已播了多久秒
     bool animating_ = false;   // 现在有没有在播
     float moveDuration_ = 0.20f;
+    void enqueue(const Move& move) { queue_.push_back(move); }
 };
 }  // namespace cube

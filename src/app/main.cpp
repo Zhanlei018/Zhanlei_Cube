@@ -24,6 +24,7 @@
 #endif
 
 cube::OrbitCamera camera;
+cube::State state;
 bool g_dragging = false;
 double g_lastX = 0.0;
 double g_lastY = 0.0;
@@ -68,6 +69,14 @@ cube::Animator g_animator;
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (action != GLFW_PRESS)
         return;
+    const bool ctrl = (mods & GLFW_MOD_CONTROL) != 0;
+    if (ctrl && key == GLFW_KEY_R) {
+        const std::vector<cube::Move> undo = cube::invertedSequence(state.history);
+        g_animator.pushSequence(undo);
+        state.history.clear();
+        std::printf("【复原】排入 %zu 个动作\n", undo.size());
+        return;
+    }
     if (key == GLFW_KEY_ESCAPE) {
         glfwSetWindowShouldClose(window, GLFW_TRUE);
         return;
@@ -142,7 +151,7 @@ int main() {
     cube::Shader shader;
     shader.loadFromFiles("shaders/cube.vert", "shaders/cube.frag");
     cube::CubieMesh mesh = cube::createCubieMesh();
-    cube::State state = cube::makeSolvedState();
+    state = cube::makeSolvedState();
     // 启动时同步一次 viewport 和宽高比（窗口未必是 1280x720）
     {
         int fbW = 0;

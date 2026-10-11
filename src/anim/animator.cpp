@@ -7,10 +7,7 @@ namespace cube {
 Animator::Animator(float moveDuration) : moveDuration_(moveDuration) {}
 
 void Animator::push(const Move& move) {
-    if (queue_.size() < 16) {
-        queue_.push_back(move);
-    }
-    (void)move;
+    if (queue_.size() < 16) enqueue(move);
 }
 
 void Animator::update(State& state, float dt) {
@@ -46,5 +43,9 @@ glm::mat4 Animator::rotationMatrix() const {
 constexpr float Animator::ease(float t) {
     float e = t * t * (3 - 2 * t);
     return e;
+}
+
+void Animator::pushSequence(const std::vector<Move>& moves) {
+    for (const Move& m : moves) enqueue(m);
 }
 }  // namespace cube
