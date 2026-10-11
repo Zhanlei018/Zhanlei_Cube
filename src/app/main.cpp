@@ -27,6 +27,7 @@
 cube::OrbitCamera camera;
 cube::State state;
 cube::DragAnchor g_anchor;
+cube::DragState g_drag;      // 拖动预览状态
 bool g_dragging = false;
 double g_lastX = 0.0;
 double g_lastY = 0.0;
@@ -52,6 +53,7 @@ void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
                                camera.viewMatrix(), camera.projectionMatrix());
 
         g_anchor = cube::makeAnchor(pick);
+        cube::beginDrag(g_drag, g_anchor);
 
         if (g_anchor.valid) {
             g_dragging = true;
@@ -62,13 +64,24 @@ void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
         }
         glfwGetCursorPos(window, &g_lastX, &g_lastY);
     } else if (action == GLFW_RELEASE) {
-        if (g_dragging && g_anchor.valid) {
-            cube::Move m;
-            if (cube::makeMoveFromDrag(g_anchor, rayFromMouse(), m)) {
-                g_animator.push(m);
-                std::printf("【拖动】axis=%d layer=%d dir=%+d\n", m.axis, m.layer, m.dir);
+        if (g_dragging && g_drag.valid && g_drag.active) {
+            const float kCommitProgress = 0.6f;
+            const float progress = std::abs(g_drag.angle) / glm::half_pi<float>();
+
+            if (progress >= kCommitProgress) {
+                cube::Move m;
+                m.axis = g_drag.axis;
+                m.layer = g_drag.layer;
+                m.dir = g_drag.dir;
+                m.turns = 1;
+                g_animator.beginMove(m, progress);
+                std::printf("【拖动】axis=%d layer=%d dir=%+d  已转 %.0f%%，播完剩余\n", m.axis,
+                            m.layer, m.dir, progress * 100.0f);
+            } else {
+                std::printf("【拖动】只转了 %.0f%%，取消\n", progress * 100.0f);
             }
         }
+        cube::endDrag(g_drag);
         g_dragging = false;
         g_anchor.valid = false;
     }
@@ -211,7 +224,17 @@ int main() {
                                camera.viewMatrix(), camera.projectionMatrix());
         lastTime = glfwGetTime();
         g_animator.update(state, dt);
+
+        // 拖动预览：用当前鼠标位置更新预览状态
+        if (g_dragging && g_drag.valid) {
+            cube::Ray mouseRay = cube::makeRayFromScreen(
+                static_cast<int>(g_mouseX), static_cast<int>(g_mouseY), fbW, fbH,
+                camera.viewMatrix(), camera.projectionMatrix());
+            cube::updateDrag(g_drag, mouseRay);
+        }
+
         const glm::mat4 animRot = g_animator.rotationMatrix();
+        const glm::mat4 dragRot = cube::dragRotationMatrix(g_drag);
         glClearColor(0.10f, 0.11f, 0.14f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         shader.use();
@@ -225,8 +248,14 @@ int main() {
             if (g_animator.isAnimating()) {
                 cube::Move m = g_animator.currentMove();
                 if (state.cubies[i].pos[m.axis] == m.layer - 1) {
-                    glm::mat4 animRot = g_animator.rotationMatrix();
                     model = animRot * model;
+                }
+            }
+            // 拖动预览：该层的方块跟着鼠标转
+            if (g_drag.active) {
+                const glm::ivec3 dpos = state.cubies[i].pos;
+                if (dpos[g_drag.axis] == g_drag.layer - 1) {
+                    model = dragRot * model;
                 }
             }
             shader.setMat4("uModel", &model[0][0]);

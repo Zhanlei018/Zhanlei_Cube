@@ -1,4 +1,4 @@
-# ============================================================================
+﻿# ============================================================================
 #  DSH Cube — 3x3x3 Rubik's Cube / C++17 + OpenGL
 #
 #  本机工具链（已探测）：C:\mingw64 下的 g++ / cmake / ninja，无 MSVC、无 vcpkg。
@@ -448,5 +448,17 @@ endif()
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tools/drag_check.cpp")
     add_executable(drag_check tools/drag_check.cpp)
     target_link_libraries(drag_check PRIVATE cube_gfx)
+endif()
+
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tools/drag_layers.cpp")
+    add_executable(drag_layers tools/drag_layers.cpp)
+    target_link_libraries(drag_layers PRIVATE cube_gfx)
+endif()
+
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tools/drag_e2e.cpp")
+    add_executable(drag_e2e tools/drag_e2e.cpp)
+    target_link_libraries(drag_e2e PRIVATE cube_gfx cube_anim)
 endif()
 

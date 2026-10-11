@@ -9,7 +9,12 @@ namespace cube {
 class Animator {
 public:
     explicit Animator(float moveDuration = 0.20f);
-    void push(const Move& move);
+
+    void push(const Move& move, float startProgress = 0.0f);
+
+    void beginMove(const Move& move, float startProgress = 0.0f);
+    void endMove(State& state);
+
     void update(State& state, float dt);
     glm::mat4 rotationMatrix() const;
     const Move& currentMove() const { return current_; }
@@ -19,11 +24,13 @@ public:
     void pushSequence(const std::vector<Move>& moves);
 
 private:
-    std::deque<Move> queue_;   // 等着播的动作
-    Move current_;             // 正在播的动作
-    float elapsed_ = 0.0f;     // 当前动作已播了多久秒
-    bool animating_ = false;   // 现在有没有在播
+    std::deque<Move> queue_;
+    Move current_;
+    float elapsed_ = 0.0f;
+    float startElapsed_ = 0.0f;
+    bool animating_ = false;
     float moveDuration_ = 0.20f;
     void enqueue(const Move& move) { queue_.push_back(move); }
 };
 }  // namespace cube
+
