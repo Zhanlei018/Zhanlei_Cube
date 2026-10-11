@@ -16,16 +16,14 @@ void Animator::beginMove(const Move& move, float startProgress) {
 
 void Animator::endMove(State& state) {
     cube::applyMove(state, current_);
-    state.history.push_back(current_);
+    if (recording_) {
+        state.history.push_back(current_);
+    }
     animating_ = false;
 }
 
 void Animator::clearHistory(State& state) {
     state.history.clear();
-}
-
-void Animator::applySilent(State& state, const Move& move) {
-    cube::applyMove(state, move);
 }
 
 void Animator::push(const Move& move, float startProgress) {

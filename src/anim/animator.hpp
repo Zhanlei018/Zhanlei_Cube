@@ -15,7 +15,8 @@ public:
     void beginMove(const Move& move, float startProgress = 0.0f);
     void endMove(State& state);
     void clearHistory(State& state);
-    void applySilent(State& state, const Move& move);
+    void setRecording(bool on) { recording_ = on; }
+    bool recording() const { return recording_; }
 
     void update(State& state, float dt);
     glm::mat4 rotationMatrix() const;
@@ -31,6 +32,7 @@ private:
     float elapsed_ = 0.0f;
     float startElapsed_ = 0.0f;
     bool animating_ = false;
+    bool recording_ = true;
     float moveDuration_ = 0.20f;
     void enqueue(const Move& move) { queue_.push_back(move); }
 };

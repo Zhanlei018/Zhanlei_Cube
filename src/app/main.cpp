@@ -126,10 +126,9 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
     if (key == GLFW_KEY_S) {
         g_animator.clearHistory(state);
         const std::vector<cube::Move> scramble = cube::randomScramble(25);
-        for (const cube::Move& m : scramble) {
-            g_animator.applySilent(state, m);
-            g_animator.push(m);
-        }
+        g_animator.setRecording(false);
+        g_animator.pushSequence(scramble);
+        g_animator.setRecording(true);
         std::printf("【打乱】%zu 步\n", scramble.size());
         return;
     }
