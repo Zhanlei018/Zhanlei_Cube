@@ -2,6 +2,7 @@
 #include "cube/moves.hpp"
 #include "cube/state.hpp"
 #include "solver/solver.hpp"
+#include "solver/twophase_solver.hpp"
 #include "input/drag.hpp"
 #include "input/picking.hpp"
 #include "render/camera.hpp"
@@ -16,6 +17,7 @@
 #include <glm/vec3.hpp>
 // 标准库
 #include <algorithm>
+#include <chrono>
 #include <cstdio>
 #include <deque>
 #include <random>
@@ -130,6 +132,33 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
         g_animator.pushSequence(scramble);
         g_animator.setRecording(true);
         std::printf("【打乱】%zu 步\n", scramble.size());
+        return;
+    }
+
+    // Q：Kociemba 两阶段求解（min2phase）
+    //
+    // 第一次按会先建剪枝表（约 55 ms，只建一次），之后每次求解亚毫秒级。
+    // 求解器算的是【当前状态】到已复原态的走法，和 history 无关。
+    if (key == GLFW_KEY_Q) {
+        if (g_animator.pendingCount() > 0 || g_animator.isAnimating()) {
+            std::printf("【求解】还有动作在播/在排队，等它播完\n");
+            return;
+        }
+        if (cube::isSolved(state)) {
+            std::printf("【求解】已经是复原状态了\n");
+            return;
+        }
+        const auto t0 = std::chrono::steady_clock::now();
+        const std::vector<cube::Move> solution = cube::solveTwoPhase(state);
+        const double ms =
+            std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t0)
+                .count();
+        if (solution.empty()) {
+            std::printf("【求解】失败（状态非法？）耗时 %.1f ms\n", ms);
+            return;
+        }
+        std::printf("【求解】%zu 步，耗时 %.1f ms\n", solution.size(), ms);
+        g_animator.pushSequence(solution);
         return;
     }
 

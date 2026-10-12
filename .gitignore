@@ -38,9 +38,23 @@ Desktop.ini
 /STAGE2.md
 /DEVELOPMENT.md
 
+# ---- 文档不进仓库（只提交代码）----
+# 根目录下的 md：README / NOTES / HANDOFF / 各种调试记录
+# 注意：只匹配根目录，src/ 之类的地方如果以后需要文档可以单独放行
+/*.md
+
+# 工具程序（测试台 / 诊断台）不进仓库
+# 构建系统里这些文件是按需编译的（if(EXISTS ...)），没有它们也能正常 build
+/tools/
+
 # ---- 临时调试输出 ----
 /build/*.txt
 /build/*.log
 
 # ---- kept on purpose ----
 !external/glad/CMakeLists.txt
+
+# third_party/min2phase 里的 README 例外保留：
+# 它记录的是【上游的许可】（GPL-3.0 / MIT 双许可）和本项目的改动说明。
+# 第三方代码分发时许可声明是必须带上的，所以这一份不忽略。
+!third_party/min2phase/README.md

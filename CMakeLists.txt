@@ -1,4 +1,4 @@
-﻿# ============================================================================
+# ============================================================================
 #  DSH Cube — 3x3x3 Rubik's Cube / C++17 + OpenGL
 #
 #  本机工具链（已探测）：C:\mingw64 下的 g++ / cmake / ninja，无 MSVC、无 vcpkg。
@@ -160,7 +160,8 @@ set(CUBE_ANIM_SOURCES
     src/anim/animator.cpp)
 
 set(CUBE_SOLVER_SOURCES
-    src/solver/solver.cpp)
+    src/solver/solver.cpp
+    src/solver/twophase_solver.cpp)
 
 set(CUBE_APP_SOURCES
     src/app/main.cpp)
@@ -290,6 +291,38 @@ if(_solver_existing AND TARGET cube_core)
     target_link_libraries(cube_solver PUBLIC cube_core glm::glm)
 else()
     message(STATUS "  cube_anim 还是空的 —— 待写 src/anim/animator.cpp。")
+endif()
+
+# ---------------------------------------------------------------------------
+#  min2phase —— Kociemba 两阶段求解器（第三方）
+#
+#  为什么用它：自己写四阶段（Thistlethwaite）每阶段都要建一张"坐标 → 到目标
+#  子群的步数"距离表，坐标空间动辄上百万。Debug 构建下建一次表要几十秒，
+#  按 Q 键求解根本等不起。
+#
+#  min2phase 靠【对称性归约】把剪枝表按等价类存，表大小直接除以 16~324。
+#  本机实测（-O2）：init() 约 55 ms，单次求解平均 0.5 ms，解长约 20 步。
+#
+#  上游：https://github.com/lilborgo/min2phaseCXX
+#        （fork 自 https://github.com/cs0x7f/min2phase ）
+#  许可：GPL-3.0 / MIT 双许可，各文件头部保留了原文 —— 分发前请自己决定用哪个
+#  改动：只裁掉了 HTTP server 部分（见 third_party/min2phase/api.cpp 顶部说明）
+# ---------------------------------------------------------------------------
+add_library(min2phase STATIC
+    third_party/min2phase/info.cpp
+    third_party/min2phase/CubieCube.cpp
+    third_party/min2phase/coords.cpp
+    third_party/min2phase/Search.cpp
+    third_party/min2phase/tools.cpp
+    third_party/min2phase/tests.cpp
+    third_party/min2phase/api.cpp)
+target_include_directories(min2phase PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/min2phase)
+# 第三方代码不开我们那套 -Wconversion（会刷屏，而且不是我们的代码）
+target_compile_options(min2phase PRIVATE -w)
+
+if(TARGET cube_solver)
+    target_link_libraries(cube_solver PUBLIC min2phase)
 endif()
 
 # ---------------------------------------------------------------------------
@@ -490,5 +523,12 @@ endif()
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tools/flow_check.cpp")
     add_executable(flow_check tools/flow_check.cpp)
     target_link_libraries(flow_check PRIVATE cube_anim cube_solver cube_core)
+endif()
+
+
+# Kociemba 两阶段（min2phase）验证台
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tools/twophase_test.cpp")
+    add_executable(twophase_test tools/twophase_test.cpp)
+    target_link_libraries(twophase_test PRIVATE cube_solver cube_core)
 endif()
 
