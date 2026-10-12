@@ -39,9 +39,10 @@ Desktop.ini
 /DEVELOPMENT.md
 
 # ---- 文档不进仓库（只提交代码）----
-# 根目录下的 md：README / NOTES / HANDOFF / 各种调试记录
-# 注意：只匹配根目录，src/ 之类的地方如果以后需要文档可以单独放行
-/*.md
+# 所有 md 都不跟踪：README / NOTES / HANDOFF / 各子目录下的说明文档
+# 注意：唯一例外是 third_party/min2phase/README.md（见文件末尾），
+#       那份是上游的许可声明，分发时必须带上
+*.md
 
 # 工具程序（测试台 / 诊断台）不进仓库
 # 构建系统里这些文件是按需编译的（if(EXISTS ...)），没有它们也能正常 build
