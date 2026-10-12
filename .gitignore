@@ -39,9 +39,10 @@ Desktop.ini
 /DEVELOPMENT.md
 
 # ---- 文档不进仓库（只提交代码）----
-# 所有 md 都不跟踪：README / NOTES / HANDOFF / 各子目录下的说明文档
-# 注意：唯一例外是 third_party/min2phase/README.md（见文件末尾），
-#       那份是上游的许可声明，分发时必须带上
+# 所有 md 都不跟踪：NOTES / HANDOFF / 各子目录下的说明文档
+# 例外有两处（见文件末尾）：
+#   · /README.md                    —— 项目的门面：简介 + 仓库结构 + 操作
+#   · third_party/min2phase/README.md —— 上游的许可声明，分发时必须带上
 *.md
 
 # 工具程序（测试台 / 诊断台）不进仓库
@@ -55,7 +56,12 @@ Desktop.ini
 # ---- kept on purpose ----
 !external/glad/CMakeLists.txt
 
-# third_party/min2phase 里的 README 例外保留：
-# 它记录的是【上游的许可】（GPL-3.0 / MIT 双许可）和本项目的改动说明。
-# 第三方代码分发时许可声明是必须带上的，所以这一份不忽略。
+# ---- 被忽略的文档里，这两份要放行 ----
+# 顺序有讲究：! 例外必须写在 *.md 之后，否则会被前面的规则重新吃掉。
+
+# 根目录 README —— 项目门面：简介 + 仓库结构 + 操作说明
+!/README.md
+
+# third_party/min2phase 的 README —— 上游的许可声明（GPL-3.0 / MIT 双许可）
+# 和本项目的改动说明。第三方代码分发时许可声明是必须带上的。
 !third_party/min2phase/README.md
